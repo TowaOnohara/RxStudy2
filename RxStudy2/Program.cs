@@ -60,18 +60,24 @@ namespace RxStudy2
     {
         static void Main(string[] args)
         {
+            int counter = 0;
             // センサーを生成
             var sensors = Enumerable.Range(1, 10).Select(i => new Sensor("Sensor#" + i.ToString("D02"))).ToArray();
 
             // 購読
             var s = Observable.Merge(
                 sensors.Select(sensor => Observable.FromEvent<EventHandler<SensorEventArgs>, SensorEventArgs>(
-                    h => (s,e) => h(e),
+                    h => (s, e) => h(e),
                     h => sensor.Publish += h,
                     h => sensor.Publish -= h)))
                 .Buffer(TimeSpan.FromSeconds(10))
-                .Select(values => values.Aggregate((x,y) => x.Value > y.Value ? x: y))
-                .Subscribe(e => Console.WriteLine("{0}: {1}", e.Name, e.Value)
+                .Select(values => values.Aggregate((x,y) =>
+                {
+                    // 100件（10センサ×10秒分）のデータに対して処理を行う。
+                    counter = values.Count();
+                    return (x.Value > y.Value ? x : y); 
+                }))
+                .Subscribe(e => Console.WriteLine("{0}: {1} (counter:{2})", e.Name, e.Value, counter)
                 );
 
             // センサー開始
